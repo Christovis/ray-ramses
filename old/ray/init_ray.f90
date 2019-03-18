@@ -18,24 +18,27 @@ subroutine init_ray(ilevel)
   logical  :: skip
   integer  :: ix,iy,iz
 
-  real(dp) :: pi,rt2                          ! numerical consts.
+  real(dp) :: pi,rt2                                               ! numerical consts.
 
-  real(dp) :: dx                              ! grid size
-  real(dp) :: xg1,xg2,xg3,xgo,ygo,zgo         ! grid centre coord
+  real(dp) :: dx                                                   ! grid size
+  real(dp) :: xg1,xg2,xg3,xgo,ygo,zgo                              ! grid centre coord
 
-  real(dp) :: dax,day                         ! ray grid size
-  integer  :: nrays_ave                       ! ray number on each CPU on average
+  real(dp) :: dax,day                                              ! ray grid size
+
+  integer  :: nrays_ave                                            ! ray number on each CPU on average
   integer  :: nrays,nrays_tot
-  real(dp) :: opening_x,opening_y,cof_x,cof_y       ! ray geometry
-  integer  :: ii,ij,i_max,i_min,j_max,j_min         ! ray indexing
-  real(dp) :: ray_x,ray_y,ray_z                     ! ray Cartesan coord
-  real(dp) :: r_c,t_c,p_c,t_s,t_lor,t_upr,p_lor,p_upr         ! ray angular coord
-  real(dp) :: xlim1,xlim2,ylim1,ylim2,x_lor,x_upr,y_lor,y_upr ! ray boundry
-  real(dp) :: a_elp,c_elp,e_elp                     ! ellipse properties
-  real(dp) :: z_foc                                 ! z-coord of ellipse
-  real(dp) :: tmp,tmp1,tmp2,chi_s                   ! intermediate quantities
-  integer, allocatable,dimension(:,:) :: tmparr1    ! temporary
-  !rays
+  real(dp) :: opening_x,opening_y,cof_x,cof_y                      ! ray geometry
+  integer  :: ii,ij,i_max,i_min,j_max,j_min                        ! ray indexing
+  real(dp) :: ray_x,ray_y,ray_z                                    ! ray Cartesan coord
+  real(dp) :: r_c,t_c,p_c,t_s,t_lor,t_upr,p_lor,p_upr              ! ray angular coord
+  real(dp) :: xlim1,xlim2,ylim1,ylim2,x_lor,x_upr,y_lor,y_upr      ! ray boundry
+
+  real(dp) :: a_elp,c_elp,e_elp                                    ! ellipse properties
+  real(dp) :: z_foc                                                ! z-coord of ellipse
+
+  real(dp) :: tmp,tmp1,tmp2,chi_s                                  ! intermediate quantities
+
+  integer, allocatable,dimension(:,:) :: tmparr1
   real(dp),allocatable,dimension(:,:) :: tmparr2
 
   ! For testing
@@ -55,7 +58,7 @@ subroutine init_ray(ilevel)
 
   !---------------------------------------
   ! Express distances in code units
-  !---------------------------------------
+  ! --------------------------------------
   ray_z_obs = ray_z_obs/ray_Lbox          
   ray_x_obs = ray_x_obs/ray_Lbox
   ray_y_obs = ray_y_obs/ray_Lbox
@@ -64,22 +67,22 @@ subroutine init_ray(ilevel)
   ! Open file for testing
   !---------------------------------------
   if(ray_step_test) then
-     call title(myid,nchar)  ! myid = processor ID
+     call title(myid,nchar)
      file_name = 'ray_'//trim(nchar)//'.dat'
      if(myid==1) write(*,*) "init_ray:  opening file for full evolution ", file_name
      open(unit=1000, file=file_name, form='formatted')
   endif
 
-  !-----------------------------------------------------------------------------!
+  !------------------------------------------------------------------
   ! This subroutine finds the rays managed by CPU #myid, and does the
   ! initialisation. 
-  !-----------------------------------------------------------------------------!
+  !------------------------------------------------------------------
 
   if(ilevel.ne.levelmin) return
   if(verbose) write(*,*)'Entering init_ray'
 
   coverH0_ray = 299792.458D0/100.D0
-  chi_s = dcom_ray(0.0D0, ray_z_s, omega_m, omega_l, coverH0_ray, 1.0D-6)/ray_Lbox
+  chi_s = dcom_ray(0.0D0,ray_z_s,omega_m,omega_l,coverH0_ray,1.0D-6)/ray_Lbox
 
   if(chi_s.le.dabs(ray_z_obs)+1.0D0 .and. chi_s.gt.dabs(ray_z_obs)) then
      ray_first_box = .true.
@@ -95,13 +98,17 @@ subroutine init_ray(ilevel)
      ray_reception(icpu)%ngrid = 0
   end do
 
-  allocate(ex_father(1:ngridmax))  ! father cell index for killed grids
+  allocate(ex_father(1:ngridmax))                                  ! father cell index for killed grids
 
+  ! ---------------------------- !
   ! ------- BAOJIU-04-10 ------- !
-  ncells = ngridmax*twotondim + ncoarse
-  allocate(ray_in_cell(1:ncells))  ! local ID of cells containing rays
+  ! ---------------------------- !
+  ncells = ngridmax*twotondim+ncoarse
+  allocate(ray_in_cell(1:ncells))                                  ! local ID of cells containing rays
   ray_in_cell = 0
+  ! ---------------------------- !
   ! ------- BAOJIU-04-10 ------- !
+  ! ---------------------------- !
 
   ! Deal with straight and non-straight rays differently
   if(ray_no_bending) then
@@ -122,38 +129,40 @@ subroutine init_ray(ilevel)
      nrays_ave = ray_Nx*ray_Ny/ncpu+1 
 
      ! Initial allocation - may need to extend the arrays if necessary
-     allocate(ray_id   (1:nrays_ave     ))
-     allocate(ray_coord(1:nrays_ave, 1:3))
-     allocate(ray_grid (1:nrays_ave, 1:2))
-     allocate(tmparr1  (1:nrays_ave, 1:2))
-     allocate(tmparr2  (1:nrays_ave, 1:3))
+     allocate(ray_id   (1:nrays_ave    ))
+     allocate(ray_coord(1:nrays_ave,1:3))
+     allocate(ray_grid (1:nrays_ave,1:2))
+     allocate(tmparr1  (1:nrays_ave,1:2))
+     allocate(tmparr2  (1:nrays_ave,1:3))
 
      if(ray_do_kappa) then
         if(ray_kappa_method.eq.3) then
-           allocate(ray_kappa(1:nrays_ave, 1:2))
+           allocate(ray_kappa(1:nrays_ave,1:2))
         else
-           allocate(ray_kappa(1:nrays_ave, 1:1))
+           allocate(ray_kappa(1:nrays_ave,1:1))
         end if
      end if
      if(ray_do_shear) then
-        allocate(ray_shear(1:nrays_ave, 1:2))
-     end if
-     if(ray_do_isw) then                                      ! Sownak-15/01/2016
-        allocate(ray_phidot(1:nrays_ave))
-     end if
-     if(ray_do_deflection) then                               ! Christ-30/01/2019
-        allocate(ray_deflection(1:nrays_ave, 1:2))
+        allocate(ray_shear(1:nrays_ave,1:2))
      end if
      ! +++ add new stuff here to calculate other observables +++
+
+     ! Start: Sownak - ISW (15/01/2016)
+     if(ray_do_isw) then
+        allocate(ray_phidot(1:nrays_ave))
+     end if
+     ! End: Sownak
 
      ray_id    = 0
      ray_grid  = 0
      ray_coord = 0.0D0
-     if(ray_do_kappa) ray_kappa = 0.0D0                       ! BAOJIU-29/09/2015
-     if(ray_do_shear) ray_shear = 0.0D0                       ! BAOJIU-29/09/2015
-     if(ray_do_isw) ray_phidot = 0.0D0                        ! Sownak-15/01/2016
-     if(ray_do_deflection) ray_deflection = 0.0D0             ! Christ-15/01/2019
+     if(ray_do_kappa) ray_kappa = 0.0D0                            ! BAOJIU-29-09
+     if(ray_do_shear) ray_shear = 0.0D0                            ! BAOJIU-29-09
      ! +++ add new stuff here to calculate other observables +++
+     
+     ! Start: Sownak - ISW (15/01/2016)
+     if(ray_do_isw) ray_phidot = 0.0D0
+     ! End: Sownak
 
      ! Current size of array. 
      n_current = nrays_ave
@@ -226,10 +235,10 @@ subroutine init_ray(ilevel)
               ! Angular coordinates of sphere edges wrt observer.
               if(t_c.le.t_s) then 
 
-                 t_lor = 0.0D0     ! theta for lower sphere edge wrt observer
-                 t_upr = t_c+t_s   ! theta for upper sphere edge wrt observer
-                 p_lor = 0.0D0     ! psi   for lower sphere edge wrt observer
-                 p_upr = 2.0D0*pi  ! psi   for upper sphere edge wrt observer
+                 t_lor = 0.0D0                                     ! theta for lower sphere edge wrt observer
+                 t_upr = t_c+t_s                                   ! theta for upper sphere edge wrt observer
+                 p_lor = 0.0D0                                     ! psi   for lower sphere edge wrt observer
+                 p_upr = 2.0D0*pi                                  ! psi   for upper sphere edge wrt observer
 
                  i_max = ray_Nx/2+int(t_upr/dax+0.5D0)
                  i_min = ray_Ny/2-int(t_upr/day+0.5D0)+1
@@ -239,8 +248,8 @@ subroutine init_ray(ilevel)
 
               else
 
-                 t_lor = t_c-t_s ! theta for lower sphere edge wrt observer
-                 t_upr = t_c+t_s ! theta for upper sphere edge wrt observer
+                 t_lor = t_c-t_s                                   ! theta for lower sphere edge wrt observer
+                 t_upr = t_c+t_s                                   ! theta for upper sphere edge wrt observer
 
                  ! z coordinate of the focus of the ellipse further away from centre:
                  ! The ellipse is the conic curve cut perpendicular to z direction on 
@@ -255,34 +264,24 @@ subroutine init_ray(ilevel)
                  tmp2  = dabs(dsqrt(xgo**2+ygo**2)-(z_foc*dtan(t_upr)))
 
                  ! Find important quantities of the ellipse
-                 a_elp = 0.5D0*dabs(tmp1+tmp2) ! ellipse:length of semi-major axis
-                 c_elp = 0.5D0*dabs(tmp1-tmp2) ! ellipse:linear eccentricity
-                 e_elp = c_elp/a_elp           ! ellipse:eccentricity
+                 a_elp = 0.5D0*dabs(tmp1+tmp2)                     ! ellipse: length of semi-major axis
+                 c_elp = 0.5D0*dabs(tmp1-tmp2)                     ! ellipse: linear eccentricity
+                 e_elp = c_elp/a_elp                               ! ellipse: eccentricity
 
                  ! Find the boundary containing the project ellipse in the x-y plane, 
                  ! whose four sides are parallel to the x and y axes.
-                 ! angle at which the ellipse is farthest/closest from/to y-axis
-                 tmp1  = dasin(-e_elp*dsin(p_c))
-                 ! angle at which the ellipse is farthest/closest from/to x-axis
-                 tmp2  = dacos(-e_elp*dcos(p_c))
+                 tmp1  = dasin(-e_elp*dsin(p_c))                   ! angle at which the ellipse is farthest/closest from/to y-axis
+                 tmp2  = dacos(-e_elp*dcos(p_c))                   ! angle at which the ellipse is farthest/closest from/to x-axis
 
-                 xlim1 = xgo + &
-                         a_elp*(1.0D0-e_elp**2) / &
-                         (1.0D0+e_elp*dcos(pi-tmp1-p_c))*dcos(pi-tmp1)
-                 xlim2 = xgo + &
-                         a_elp*(1.0D0-e_elp**2)/ &
-                         (1.0D0+e_elp*dcos(tmp1-p_c))*dcos(tmp1)
-                 ylim1 = ygo + &
-                         a_elp*(1.0D0-e_elp**2) / &
-                         (1.0D0+e_elp*dcos(2.0D0*pi-tmp2-p_c))*dsin(2.0D0*pi-tmp2)
-                 ylim2 = ygo + &
-                         a_elp*(1.0D0-e_elp**2) / &
-                         (1.0D0+e_elp*dcos(tmp2-p_c))*dsin(tmp2)
+                 xlim1 = xgo+a_elp*(1.0D0-e_elp**2)/(1.0D0+e_elp*dcos(      pi-tmp1-p_c))*dcos(      pi-tmp1)
+                 xlim2 = xgo+a_elp*(1.0D0-e_elp**2)/(1.0D0+e_elp*dcos(         tmp1-p_c))*dcos(         tmp1)
+                 ylim1 = ygo+a_elp*(1.0D0-e_elp**2)/(1.0D0+e_elp*dcos(2.0D0*pi-tmp2-p_c))*dsin(2.0D0*pi-tmp2)
+                 ylim2 = ygo+a_elp*(1.0D0-e_elp**2)/(1.0D0+e_elp*dcos(         tmp2-p_c))*dsin(         tmp2)
 
-                 x_lor = dmin1(xlim1,xlim2)  ! lowest  x-coord on the ellipse
-                 x_upr = dmax1(xlim1,xlim2)  ! highest x-coord on the ellipse
-                 y_lor = dmin1(ylim1,ylim2)  ! lowest  y-coord on the ellipse
-                 y_upr = dmax1(ylim1,ylim2)  ! highest y-coord on the ellipse
+                 x_lor = dmin1(xlim1,xlim2)                        ! lowest  x-coord on the ellipse
+                 x_upr = dmax1(xlim1,xlim2)                        ! highest x-coord on the ellipse
+                 y_lor = dmin1(ylim1,ylim2)                        ! lowest  y-coord on the ellipse
+                 y_upr = dmax1(ylim1,ylim2)                        ! highest y-coord on the ellipse
 
                  ! Find the i & j indices of the rays that fall in this boundary
                  i_max = int((datan(x_upr/dabs(z_foc))+0.5D0*opening_x)/dax)+1
@@ -290,8 +289,8 @@ subroutine init_ray(ilevel)
                  j_max = int((datan(y_upr/dabs(z_foc))+0.5D0*opening_y)/day)+1
                  j_min = int((datan(y_lor/dabs(z_foc))+0.5D0*opening_y)/day)+2
 
-                 if(i_min.gt.ray_Nx+1 .or. i_max.lt.1) cycle  ! outside boundary
-                 if(j_min.gt.ray_Ny+1 .or. j_max.lt.1) cycle  ! outside boundary
+                 if(i_min.gt.ray_Nx+1 .or. i_max.lt.1) cycle       ! outside boundary
+                 if(j_min.gt.ray_Ny+1 .or. j_max.lt.1) cycle       ! outside boundary
 
                  if(i_max.eq.1) i_min = 1
                  if(j_max.eq.1) j_min = 1
@@ -517,7 +516,7 @@ contains
   subroutine extend_arrays_if_too_small(chunk_size)
 
     ! Allocation chunk size
-    integer :: chunk_size,size_kappa                               ! BAOJIU-29-09
+    integer :: chunk_size,size_kappa                                            ! BAOJIU-29-09
 
     tmparr1(1:n_current,1) = ray_id(1:n_current)
     deallocate(ray_id)
@@ -537,31 +536,24 @@ contains
     ray_coord = 0.0D0
     ray_coord(1:n_current,1:3) = tmparr2(1:n_current,1:3)
 
-    if(ray_do_kappa) then                                          ! BAOJIU-29-09
-       size_kappa = size(ray_kappa,2)
-       tmparr2(1:n_current,1:size_kappa) = ray_kappa(1:n_current,1:size_kappa)
-       deallocate(ray_kappa) 
-       allocate  (ray_kappa(1:n_current+chunk_size,1:size_kappa))
-       ray_kappa = 0.0D0
-       ray_kappa(1:n_current,1:size_kappa) = tmparr2(1:n_current,1:size_kappa)
-    end if
+    if(ray_do_kappa) then                                                       ! BAOJIU-29-09
+       size_kappa = size(ray_kappa,2)                                           ! BAOJIU-29-09
+       tmparr2(1:n_current,1:size_kappa) = ray_kappa(1:n_current,1:size_kappa)  ! BAOJIU-29-09
+       deallocate(ray_kappa)                                                    ! BAOJIU-29-09
+       allocate  (ray_kappa(1:n_current+chunk_size,1:size_kappa))               ! BAOJIU-29-09
+       ray_kappa = 0.0D0                                                        ! BAOJIU-29-09
+       ray_kappa(1:n_current,1:size_kappa) = tmparr2(1:n_current,1:size_kappa)  ! BAOJIU-29-09
+    end if                                                                      ! BAOJIU-29-09
 
-    if(ray_do_shear) then ! BAOJIU-29-09
-       tmparr2(1:n_current,1:2) = ray_shear(1:n_current,1:2)
-       deallocate(ray_shear)
-       allocate  (ray_shear(1:n_current+chunk_size,1:2)) 
-       ray_shear = 0.0D0  
-       ray_shear(1:n_current,1:2) = tmparr2(1:n_current,1:2)    
-    end if
-    
-    ! Start: Christoph - deflection angle (30/01/2019)
-    if(ray_do_deflection) then
-       tmparr2(1:n_current,1:2) = ray_deflection(1:n_current,1:2)
-       deallocate(ray_deflection)
-       allocate  (ray_deflection(1:n_current+chunk_size,1:2)) 
-       ray_deflection = 0.0D0
-       ray_deflection(1:n_current,1:2) = tmparr2(1:n_current,1:2)    
-    end if 
+    if(ray_do_shear) then                                                       ! BAOJIU-29-09
+       tmparr2(1:n_current,1:2) = ray_shear(1:n_current,1:2)                    ! BAOJIU-29-09
+       deallocate(ray_shear)                                                    ! BAOJIU-29-09
+       allocate  (ray_shear(1:n_current+chunk_size,1:2))                        ! BAOJIU-29-09
+       ray_shear = 0.0D0                                                        ! BAOJIU-29-09
+       ray_shear(1:n_current,1:2) = tmparr2(1:n_current,1:2)                    ! BAOJIU-29-09
+    end if                                                                      ! BAOJIU-29-09
+
+    ! +++ add new stuff here to calculate other observables +++
 
     ! Start: Sownak - ISW (15/01/2016)
     if(ray_do_isw) then
@@ -571,8 +563,7 @@ contains
        ray_phidot = 0.0D0
        ray_phidot(1:n_current) = tmparr2(1:n_current,1)
     end if
-    
-    ! +++ add new stuff here to calculate other observables +++
+    ! End: Sownak
 
     deallocate(tmparr1)
     deallocate(tmparr2)  

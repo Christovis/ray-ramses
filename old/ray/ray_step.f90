@@ -63,9 +63,9 @@ subroutine ray_step(ilevel_arg,aexp_arg)                           ! BAOJIU-17-0
 
   ! For making interpolation (we assume at most 20 fields!!)
   real(dp), dimension(1:RAY_NFIELDS,1:8) :: ray_fields
-  real(dp), dimension(1:RAY_NFIELDS) :: tidal_at_center         ! ALEX-21-02-2016
-  real(dp) :: phidot_at_center, aexp_mean, zexp_mean            ! ALEX-21-02-2016
-  integer :: chunk_size                                         ! BAOJIU-04-10
+  real(dp), dimension(1:6) :: tidal_at_center      ! ALEX-21-02-2016
+  real(dp) :: phidot_at_center, aexp_mean, zexp_mean ! ALEX-21-02-2016
+  integer :: chunk_size                                            ! BAOJIU-04-10
 
   !---------------------------------------------------------------------
   ! This routine moves all the rays during one particle time step
@@ -272,94 +272,59 @@ subroutine ray_step(ilevel_arg,aexp_arg)                           ! BAOJIU-17-0
                          / (aexp_new_ray(ilevel-1)-aexp_old_ray(ilevel-1)) * E_friedmann_ray(zexp_mean,omega_m,omega_l) * aexp_mean
                  else
                     ! If the cell already existed in previous steps, use current cells data
-                    aexp_mean = (aexp_new_ray(ilevel)+aexp_old_ray(ilevel))/2.0D0
-                    zexp_mean = 1.0D0/aexp_mean - 1.0D0
-                    phidot_at_center = (phi(icell)/aexp_new_ray(ilevel)**2&
-                                       - phi_old(icell)/aexp_old_ray(ilevel)**2)&
-                                       / (aexp_new_ray(ilevel) &
-                                          - aexp_old_ray(ilevel)) &
-                                       * E_friedmann_ray(zexp_mean,omega_m,omega_l) &
-                                       * aexp_mean
+                    aexp_mean       = (aexp_new_ray(ilevel)+aexp_old_ray(ilevel))/2.0D0
+                    zexp_mean       = 1.0D0/aexp_mean - 1.0D0
+                    phidot_at_center= (phi(icell)/aexp_new_ray(ilevel)**2 - phi_old(icell)/aexp_old_ray(ilevel)**2) & 
+                         / (aexp_new_ray(ilevel)-aexp_old_ray(ilevel)) * E_friedmann_ray(zexp_mean,omega_m,omega_l) * aexp_mean
                  end if
               end if
            else
               ! Interpolate given quantity from cell centers to cell corners
-              call ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
+              call ray_fields_in_corners(ilevel,igrid,ind,ray_fields)
            end if
 
            ! Integrate given quantity in cell
-           if(ray_do_kappa) then                                   ! BAOJIU-29-09
-              if(ray_kappa_method.ne.2) then                       ! BAOJIU-29-09
+           if(ray_do_kappa) then                                         ! BAOJIU-29-09
+              if(ray_kappa_method.ne.2) then                             ! BAOJIU-29-09
                  if(ray_do_ngp) then
-                    write(*,*) 'NGP integration method not available for &
-                                &ray_kappa_method = 1 (Method A for kappa)'
+                    write(*,*) 'NGP integration method not available for ray_kappa_method = 1 (Method A for kappa)'
                     write(*,*) 'Switch to ray_kappa_method = 2'
                     stop 
                  else
-                    ! BAOJIU-29-09; this adds to ray_kappa(iray,1)
-                    call ray_integrate(iray, ilevel, ind, chi_A, ray_fields, 1)
+                    call ray_integrate(iray,ilevel,ind,chi_A,ray_fields,1)  ! BAOJIU-29-09; this adds to ray_kappa(iray,1)
                  end if
-              end if                                               ! BAOJIU-29-09
-              if(ray_kappa_method.ne.1) then                       ! BAOJIU-29-09
+              end if                                                     ! BAOJIU-29-09
+              if(ray_kappa_method.ne.1) then                             ! BAOJIU-29-09
                  if(ray_do_ngp) then
-                    call ray_integrate_ngp(iray, ilevel, ind, chi_A, &
-                                           tidal_at_center, phidot_at_center, 2)
+                    call ray_integrate_ngp(iray, ilevel, ind, chi_A, tidal_at_center, phidot_at_center, 2)
                  else
-                    ! BAOJIU-29-09; this adds to ray_kappa(iray,2)
-                    call ray_integrate(iray, ilevel, ind, chi_A, &
-                                       ray_fields, 2)
+                    call ray_integrate(iray,ilevel,ind,chi_A,ray_fields,2)  ! BAOJIU-29-09; this adds to ray_kappa(iray,2)
                  end if
-              end if                                               ! BAOJIU-29-09
-           end if                                                  ! BAOJIU-29-09
+              end if                                                     ! BAOJIU-29-09
+           end if                                                        ! BAOJIU-29-09
 
-           if(ray_do_shear) then                                   ! BAOJIU-29-09
+           if(ray_do_shear) then                                         ! BAOJIU-29-09
               if(ray_do_ngp) then
-                 call ray_integrate_ngp(iray, ilevel, ind, chi_A, &
-                                        tidal_at_center, phidot_at_center, 3)
-                 call ray_integrate_ngp(iray, ilevel, ind, chi_A, &
-                                        tidal_at_center, phidot_at_center, 4)
+                 call ray_integrate_ngp(iray, ilevel, ind, chi_A, tidal_at_center, phidot_at_center, 3)
+                 call ray_integrate_ngp(iray, ilevel, ind, chi_A, tidal_at_center, phidot_at_center, 4)
               else
-                 ! BAOJIU-29-09; this adds to ray_shear(iray,1)
-                 call ray_integrate(iray, ilevel, ind, chi_A, &
-                                    ray_fields, 3)
-                 ! BAOJIU-29-09; this adds to ray_shear(iray,2)
-                 call ray_integrate(iray, ilevel, ind, chi_A, &
-                                    ray_fields, 4)
+                 call ray_integrate(iray,ilevel,ind,chi_A,ray_fields,3)     ! BAOJIU-29-09; this adds to ray_shear(iray,1)
+                 call ray_integrate(iray,ilevel,ind,chi_A,ray_fields,4)     ! BAOJIU-29-09; this adds to ray_shear(iray,2)
               end if
-           end if                                                  ! BAOJIU-29-09
-           
+           end if                                                        ! BAOJIU-29-09
+
+           ! +++ add new stuff here to calculate other observables +++
+
            ! Start: Sownak - ISW (26/10/2015)
            if (ray_do_isw) then
               if(ray_do_ngp) then
-                 call ray_integrate_ngp(iray, ilevel, ind, chi_A, &
-                                        tidal_at_center, phidot_at_center, 5)
+                 call ray_integrate_ngp(iray, ilevel, ind, chi_A, tidal_at_center, phidot_at_center, 5)
               else
-                 call ray_integrate(iray, ilevel, ind, chi_A, &
-                                    ray_fields, 5)
+                 call ray_integrate(iray,ilevel,ind,chi_A,ray_fields,5)
               end if
            end if
-
-           ! +++ add new stuff here to calculate other observables +++
-           
-           if(ray_do_deflection) then                                 ! Christoph
-              if(ray_do_ngp) then
-                  ! FIXME needs to be implemented
-                 call ray_integrate_ngp(iray, ilevel, ind, chi_A, &
-                                        tidal_at_center, phidot_at_center, 6)
-                 call ray_integrate_ngp(iray, ilevel, ind, chi_A, &
-                                        tidal_at_center, phidot_at_center, 7)
-              else
-                 call ray_integrate(iray, ilevel, ind, chi_A, &
-                                    ray_fields, 6)
-                 call ray_integrate(iray, ilevel, ind, chi_A, &
-                                    ray_fields, 7)
-              end if
-           end if
-
            ! End: Sownak
-           ! ALEX-21-02-2016 End of modification
-           ! (added a series of if statements to 
-           !  bifurcate corners and NGP integration)
+           ! ALEX-21-02-2016 End of modification (added a series of if statements to bifurcate corners and NGP integration)
 
            ! If get_lost set to true above then cycle this ray 
            ! This can either mean end of total integration or end of particle time step

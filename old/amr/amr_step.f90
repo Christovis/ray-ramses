@@ -431,7 +431,7 @@ recursive subroutine amr_step(ilevel,icount)
         zexp        = 1.0d0/aexp-1.0d0
         chi_wave    = dcom_ray(0.0d0,zexp,omega_m,omega_l,coverH0_ray,1.0d-6)/ray_Lbox! Sownak: 02/09/2015
 
-        temp_dist_z = dabs(ray_z_obs)/ray_Lbox+1.0d0  ! units in box size
+        temp_dist_z = dabs(ray_z_obs)/ray_Lbox+1.0d0
         temp_dist_x = dtan(ray_opening_x/360.0d0*pi)*temp_dist_z
         temp_dist_y = dtan(ray_opening_y/360.0d0*pi)*temp_dist_z
         

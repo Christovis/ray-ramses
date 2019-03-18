@@ -2,22 +2,19 @@ module ray_commons
   use amr_commons
   use ray_parameters
 
-  real(dp), allocatable, dimension(:,:) :: ray_coord  ! Ray_coordinates (chi,theta,phi)
-  real(dp), allocatable, dimension(:,:) :: ray_kappa  ! WL convergence
-  real(dp), allocatable, dimension(:,:) :: ray_shear  ! WL shear (gamma_1,gamma_2)
-
-  ! Sownak - ISW (26/10/2015)
-  real(dp), allocatable, dimension(:)   :: ray_phidot ! Phi_dot for ISW calculation
-  
-  ! Christoph - deflection angle (30/10/2019)
-  real(dp), allocatable, dimension(:,:) :: ray_deflection  ! SL deflection (alpha_1,alpha_2)
-  
+  real(dp), allocatable, dimension(:,:) :: ray_coord               ! Ray_coordinates (chi,theta,phi)
+  real(dp), allocatable, dimension(:,:) :: ray_kappa               ! WL convergence
+  real(dp), allocatable, dimension(:,:) :: ray_shear               ! WL shear (gamma_1, gamma_2)
   ! +++ add new stuff here to calculate other observables +++
 
-  integer                               :: ray_nrays    ! number of rays on my CPU
-  integer,  allocatable, dimension(:)   :: ray_id       ! ray ID
-  integer,  allocatable, dimension(:,:) :: ray_grid     ! (grid ind, info of cell_ind,icpu & ilevel)
-  integer,  allocatable, dimension(:)   :: ex_father    ! father cell befoire kill_grid is called
+  ! Start: Sownak - ISW (26/10/2015)
+  real(dp), allocatable, dimension(:)   :: ray_phidot              ! Phi_dot for ISW calculation
+  ! End: Sownak
+
+  integer                               :: ray_nrays               ! number of rays on my CPU
+  integer,  allocatable, dimension(:)   :: ray_id                  ! ray ID
+  integer,  allocatable, dimension(:,:) :: ray_grid                ! (grid ind, info of cell_ind,icpu & ilevel)
+  integer,  allocatable, dimension(:)   :: ex_father               ! father cell befoire kill_grid is called
 
   ! ---------------------------- !
   ! ------- BAOJIU-04-10 ------- !

@@ -1,26 +1,7 @@
 ! ---------------------
 ! ray_fields_in_corners
 ! ---------------------
-subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
-  !-----------------------------------------------------------------------------!
-  ! This interpolates the values of fields from cell centers to cell vertices
-  ! (this is done for ease of implementation of the ray integration in A)
-  !
-  ! cells) If a cell has all neighbours of the same ilevel (not at a coarse/fine
-  ! interface), then the value of the vertice is given by the eight cells that
-  ! share that vertice.
-  !
-  ! B) If a cell is at a coarse/fine interface, then the vertices on the
-  ! interface side are obtained using a weighted average of the 27
-  ! neighbouring father cells. This ensures the field varies continuously
-  ! from the coarse to the fine side.
-  ! The fine cell vertices that are further away from the coarse/fine
-  ! interface are computed as in point A) above.
-  !
-  ! It takes as input {ilevel, igrid, ind}, and returns {int_rho} - the field at
-  ! the cell vertices. The indices of the return variable int_rho(1:8), work in 
-  ! the same way as the variable ind
-  !-----------------------------------------------------------------------------!
+subroutine ray_fields_in_corners(ilevel,igrid,ind,ray_fields)
   use amr_commons
   use amr_parameters
   use poisson_commons
@@ -44,14 +25,12 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
   logical,dimension(1:8) :: normal_vertice
   logical  :: neighbour_refined
   integer  :: ix,iy,iz,jtarget,iind
-  integer  :: xx, yy, zz, xy, yz, xz
-  integer  :: igrid_nbor_fine, icell_nbor_fine, ind_nbor_fine
-  real(dp) :: xtarget1, xtarget2, xtarget3
-  real(dp) :: xc1, xc2, xc3
-  real(dp) :: xcorner_father1, xcorner_father2, xcorner_father3
-  real(dp) :: q1, q2, q3, q4, q5, q6, q7, q8
-  real(dp) :: dx, dy, dz
-  real(dp) :: weight, weight_tot
+  integer  :: xx,yy,zz,xy,yz,xz
+  integer  :: igrid_nbor_fine,icell_nbor_fine,ind_nbor_fine
+  real(dp) :: xtarget1,xtarget2,xtarget3,xc1,xc2,xc3,xcorner_father1,xcorner_father2,xcorner_father3
+  real(dp) :: q1,q2,q3,q4,q5,q6,q7,q8
+  real(dp) :: dx,dy,dz
+  real(dp) :: weight,weight_tot
   real(dp) :: oneeighth
 
   real(dp),dimension(1:6) :: tidal
@@ -66,11 +45,32 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
   integer :: ind_coarse   ! for the tidal and the case without neighbour
 
   ! Start: Sownak - ISW (26/10/2015)
-  real(dp) :: phidot
-  real(dp) :: aexp_mean,zexp_mean,E_friedmann_ray
-  real(dp) :: analytic_isw  ! for testing isw
-  logical  :: down_level
+  real(dp)                              :: phidot
+  real(dp)                              :: aexp_mean,zexp_mean,E_friedmann_ray
+  real(dp)  :: analytic_isw  ! for testing isw
+  logical   :: down_level
   ! End: Sownak
+
+
+  !---------------------------------------------------------------------------
+  ! This interpolates the values of fields from cell centers to cell vertices
+  ! (this is done for ease of implementation of the ray integration in A)
+  !
+  ! cells) If a cell has all neighbours of the same ilevel (not at a coarse/fine
+  ! interface), then the value of the vertice is given by the eight cells that
+  ! share that vertice.
+  !
+  ! B) If a cell is at a coarse/fine interface, then the vertices on the
+  ! interface side are obtained using a weighted average of the 27
+  ! neighbouring father cells. This ensures the field varies continuously
+  ! from the coarse to the
+  ! fine side. The fine cell vertices that are further away from the coarse/fine
+  ! interface are computed as in point A) above.
+  !
+  ! It takes as input {ilevel, igrid, ind}, and returns {int_rho} - the field at
+  ! the cell vertices. The indices of the return variable int_rho(1:8), work in 
+  ! the same way as the variable ind
+  !--------------------------------------------------------------------------
 
   !if(myid.eq.1) write(*,*) 'Entering ray_fields_in_corner'
 
@@ -83,14 +83,13 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
 
   increase_array = .false.
 
-  if(ray_in_cell(icell).gt.0) then ! corner field values exist
+  if(ray_in_cell(icell).gt.0) then                                 ! corner field values exist
 
      ! use stored corner field values
      ray_fields(1, 1:8) = ray_stored_dens(ray_in_cell(icell),1:8) 
      ray_fields(11,1:8) = ray_stored_pots(ray_in_cell(icell),1:8) 
 
      if(ray_do_kappa.and.ray_kappa_method.ne.2) then
-        ! for kappa, deflection
         ray_fields(8:10,1:8) = ray_stored_force(ray_in_cell(icell),1:3,1:8)
      end if
 
@@ -98,26 +97,26 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
         ray_fields(2:7, 1:8) = ray_stored_tidal(ray_in_cell(icell),1:6,1:8)
      end if
 
+     ! +++ add new stuff here to calculate other observables +++
+
      ! Start: Sownak - ISW (26/10/2015)
      if(ray_do_isw) then
         ray_fields(12,1:8) = ray_stored_phidot(ray_in_cell(icell),1:8)
      end if
      ! End: Sownak 
 
-     ! +++ add new stuff here to calculate other observables +++
-     return ! no need of further calculation
+     return                                                        ! no need of further calculation
 
   end if
   ! ---------------------------- !
   ! ------- BAOJIU-04-10 ------- !
   ! ---------------------------- !
 
-  father_cell(1) = father(igrid)  ! father cell of current grid
-  oneeighth      = 1.0D0/8.0D0    ! numerical parameter
+  father_cell(1) = father(igrid)                                   ! father cell of current grid
+  oneeighth      = 1.0D0/8.0D0                                     ! numerical parameter
 
   ! Find 27 neighbours of the father of the current cell
-  call get3cubefather(father_cell, nbors_father_cells, &
-                      nbors_father_grids, 1, ilevel)
+  call get3cubefather(father_cell,nbors_father_cells,nbors_father_grids,1,ilevel)
 
   ! Loop over each vertice of the cell
   do itarget=1,8
@@ -126,9 +125,9 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
      do i=1,RAY_NFIELDS
         ray_fields(i,itarget) = 0.0D0
      enddo
-     weight_tot              = 0.0D0   ! to be accumulated
+     weight_tot              = 0.0D0                               ! to be accumulated
 
-     normal_vertice(itarget) = .true.  ! all vertices are normal by default
+     normal_vertice(itarget) = .true.                              ! all vertices are normal by default
 
      ! Loop over the 8 neighbours of the current cell
      do ind_nbor=1,8
@@ -140,7 +139,7 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
         ! Proceed separately for THREE cases 
         if(igrid_nbor.eq.0) then
            ! CASE II: neighbournig cells do not exist
-           normal_vertice(itarget) = .false. ! mark vertice at boundary
+           normal_vertice(itarget) = .false.                       ! mark vertice at boundary
            !write(*,*) itarget, "is not normal"
            exit 
         else
@@ -150,8 +149,7 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
               ! add on to the sum of ray_fields for this itarget with weight unity.
               ray_fields(1,itarget) = ray_fields(1,itarget)+rho(icell_nbor)
               if(ray_kappa_method.ne.1) then                       ! BAOJIU-29-09
-                 call tidal_tensor(ilevel, igrid_nbor, icell_nbor, &
-                                   ray_lll_mmm(itarget,ind_nbor,ind), tidal)
+                 call tidal_tensor(ilevel,igrid_nbor,icell_nbor,ray_lll_mmm(itarget,ind_nbor,ind),tidal)
                  do i=1,6
                     ray_fields(i+1,itarget) = ray_fields(i+1,itarget)+tidal(i)
                  enddo
@@ -165,38 +163,28 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
 
               ! Start: Sownak - ISW (26/10/2015)
               if(ray_do_isw) then
-                 !write(*,"(I5, E20.12, E20.12,E20.12,E20.12)")
-                 !ilevel, aexp_new_ray(ilevel), aexp
-                 !aexp_old_ray(ilevel), aexp_mean
-                 if(ilevel.gt.levelmin &
-                     .and. dabsi(phi_old(icell_nbor) / &
-                                 phi_old(father(igrid_nbor))-1.0D0).lt.1.0D-10) &
-                                 then
-                    aexp_mean = (aexp_new_ray(ilevel-1) + &
-                                 aexp_old_ray(ilevel-1))/2.0D0
+                 !write(*,"(I5, E20.12, E20.12,E20.12,E20.12)") ilevel, aexp_new_ray(ilevel), aexp, aexp_old_ray(ilevel), aexp_mean
+                 if(ilevel.gt.levelmin .and. dabs(phi_old(icell_nbor)/phi_old(father(igrid_nbor))-1.0D0).lt.1.0D-10) then
+                    aexp_mean = (aexp_new_ray(ilevel-1)+aexp_old_ray(ilevel-1))/2.0D0
                     zexp_mean = 1.0D0/aexp_mean-1.0D0
-                    phidot = (phi(father(igrid_nbor))/aexp_new_ray(ilevel-1)**2-&
-                              phi_old(father(igrid_nbor))/aexp_old_ray(ilevel-1)**2) &
-                             /(aexp_new_ray(ilevel-1)-aexp_old_ray(ilevel-1)) &
-                             *E_friedmann_ray(zexp_mean,omega_m,omega_l)*aexp_mean 
+                    phidot = (phi(father(igrid_nbor))/aexp_new_ray(ilevel-1)**2-phi_old(father(igrid_nbor))/aexp_old_ray(ilevel-1)**2) &
+                           / (aexp_new_ray(ilevel-1)-aexp_old_ray(ilevel-1)) &
+                           * E_friedmann_ray(zexp_mean,omega_m,omega_l)*aexp_mean 
                  else
                     aexp_mean = (aexp_new_ray(ilevel)+aexp_old_ray(ilevel))/2.0D0
                     zexp_mean = 1.0D0/aexp_mean-1.0D0
-                    phidot = (phi(icell_nbor)/aexp_new_ray(ilevel)**2 - &
-                             phi_old(icell_nbor)/aexp_old_ray(ilevel)**2) & 
+                    phidot = (phi(icell_nbor)/aexp_new_ray(ilevel)**2-phi_old(icell_nbor)/aexp_old_ray(ilevel)**2) & 
                            / (aexp_new_ray(ilevel)-aexp_old_ray(ilevel)) &
                            * E_friedmann_ray(zexp_mean,omega_m,omega_l)*aexp_mean
                  end if
                  ! For testing analytic solution
-                 !phidot = analytic_isw(ilevel, igrid, ind, itarget, &
-                 !                      aexp_mean, zexp_mean)
-                 !phidot = (phi(icell_nbor)/aexp_new_ray(ilevel)**2 - &
-                 !          phi_old(icell_nbor)/aexp_old_ray(ilevel)**2)
+                 !phidot = analytic_isw(ilevel, igrid, ind, itarget, aexp_mean, zexp_mean)
+                 !phidot                 = (phi(icell_nbor)/aexp_new_ray(ilevel)**2 - phi_old(icell_nbor)/aexp_old_ray(ilevel)**2)
                  ray_fields(12,itarget) = ray_fields(12,itarget) + phidot
               end if
               ! End: Sownak
 
-              weight_tot = weight_tot+1.0D0
+              weight_tot       = weight_tot+1.0D0
            else
               !write(*,*) "Setting neighbour_refined = true"
               neighbour_refined = .true.                           ! neighbour has been refined: dealt with separately below
@@ -314,59 +302,47 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
               ! Find the index of the level-(ilevel+1) cell sharing the target vertice
               icell_nbor_fine  = igrid_nbor_fine+ncoarse+(ind_nbor_fine-1)*ngridmax
 
-              weight = weight+oneeighth  ! accummulate weight 
+              weight           = weight+oneeighth                  ! accummulate weight 
 
               ! Find the position of level-ilevel cells wrt the target vertice
               iz = (ind_nbor-1)/4
               iy = (ind_nbor-1-iz*4)/2
               ix = (ind_nbor-1-iz*4-iy*2)
 
-              ! Is the level-ilevel cell with the same y AND
-              ! z coordinates refined?
+              ! Is the level-ilevel cell with the same y AND z coordinates refined?
               iind       = ind_nbor+(1-2*ix)
               igrid_nbor = son(nbors_father_cells(1,ray_kkk_mmm(itarget,iind,ind)))
-              icell_nbor = igrid_nbor + ncoarse + &
-                           (ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
+              icell_nbor = igrid_nbor+ncoarse+(ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
               xx         = son(icell_nbor)
 
-              ! Is the level-ilevel cell with the same x AND
-              ! z coordinates refined?
+              ! Is the level-ilevel cell with the same x AND z coordinates refined?
               iind       = ind_nbor+(1-2*iy)*2
               igrid_nbor = son(nbors_father_cells(1,ray_kkk_mmm(itarget,iind,ind)))
-              icell_nbor = igrid_nbor + ncoarse + &
-                           (ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
-              yy         = son(icell_nbor)
+              icell_nbor = igrid_nbor+ncoarse+(ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
+              yy          = son(icell_nbor)
 
-              ! Is the level-ilevel cell with the same x AND
-              ! y coordinates refined?
+              ! Is the level-ilevel cell with the same x AND y coordinates refined?
               iind       = ind_nbor+(1-2*iz)*4
               igrid_nbor = son(nbors_father_cells(1,ray_kkk_mmm(itarget,iind,ind)))
-              icell_nbor = igrid_nbor + ncoarse + &
-                           (ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
+              icell_nbor = igrid_nbor+ncoarse+(ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
               zz         = son(icell_nbor)
 
-              ! Is the level-ilevel cell with the same z AND
-              ! different x & y coordinates refined?
+              ! Is the level-ilevel cell with the same z AND different x & y coordinates refined?
               iind       = ind_nbor+(1-2*ix)+(1-2*iy)*2
               igrid_nbor = son(nbors_father_cells(1,ray_kkk_mmm(itarget,iind,ind)))
-              icell_nbor = igrid_nbor + ncoarse + &
-                           (ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
+              icell_nbor = igrid_nbor+ncoarse+(ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
               xy         = son(icell_nbor)
 
-              ! Is the level-ilevel cell with the same x AND
-              ! different y & z coordinates refined?
+              ! Is the level-ilevel cell with the same x AND different y & z coordinates refined?
               iind       = ind_nbor+(1-2*iy)*2+(1-2*iz)*4
               igrid_nbor = son(nbors_father_cells(1,ray_kkk_mmm(itarget,iind,ind)))
-              icell_nbor = igrid_nbor + ncoarse + &
-                           (ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
+              icell_nbor = igrid_nbor+ncoarse+(ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
               yz          = son(icell_nbor)
 
-              ! Is the level-ilevel cell with the same y AND
-              ! different x & z coordinates refined?
+              ! Is the level-ilevel cell with the same y AND different x & z coordinates refined?
               iind       = ind_nbor+(1-2*ix)+(1-2*iz)*4
               igrid_nbor = son(nbors_father_cells(1,ray_kkk_mmm(itarget,iind,ind)))
-              icell_nbor = igrid_nbor + ncoarse + &
-                           (ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
+              icell_nbor = igrid_nbor+ncoarse+(ray_lll_mmm(itarget,iind,ind)-1)*ngridmax
               xz         = son(icell_nbor)
 
               ! Accummulate weight accordingly
@@ -377,7 +353,7 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
               if(yy.eq.0.or.zz.eq.0.or.yz.eq.0) weight = weight+oneeighth   
               if(zz.eq.0.or.xx.eq.0.or.xz.eq.0) weight = weight+oneeighth   
 
-              ! Accummulate density accordingly
+              ! Accummulate desnity accordingly
               ray_fields(1,itarget) = ray_fields(1,itarget)+weight*rho(icell_nbor_fine)
               if(ray_kappa_method.ne.1) then                       ! BAOJIU-29-09
                  call tidal_tensor(ilevel+1,igrid_nbor_fine,icell_nbor_fine,ind_nbor_fine,tidal)
@@ -394,10 +370,7 @@ subroutine ray_fields_in_corners(ilevel, igrid, ind, ray_fields)
 
               ! Start: Sownak - ISW (26/10/2015)
               if(ray_do_isw) then                                  ! BAOJIU-11-02-2016
-                 if(ilevel+1 .gt. &
-                     levelmin .and. &
-                     dabs(phi_old(icell_nbor_fine)/phi_old(father(igrid_nbor_fine))-1.0D0) .lt. &
-                     1.0D-10) then
+                 if(ilevel+1.gt.levelmin .and. dabs(phi_old(icell_nbor_fine)/phi_old(father(igrid_nbor_fine))-1.0D0).lt.1.0D-10) then
                     aexp_mean = (aexp_new_ray(ilevel)+aexp_old_ray(ilevel))/2.0D0
                     zexp_mean = 1.0D0/aexp_mean-1.0D0
                     phidot = (phi(father(igrid_nbor_fine))/aexp_new_ray(ilevel)**2-phi_old(father(igrid_nbor_fine))/aexp_old_ray(ilevel)**2) &
@@ -970,8 +943,7 @@ subroutine ray_interpolate(ilevel, igrid, ind, ray_fields)
            ! ---------------------------------------------------------------- !
            ! This block determines the coordinate of the vertice itarget wrt box
 
-           ! Position of target vertex wrt cell
-           ! (0,1 values -- overwrite values above)
+           ! Position of target vertex wrt cell (0,1 values -- overwrite values above)
            iz = (itarget - 1)/4
            iy = (itarget - 1 - 4*iz)/2
            ix = (itarget - 1 - 4*iz - 2*iy)
@@ -986,21 +958,18 @@ subroutine ray_interpolate(ilevel, igrid, ind, ray_fields)
 
            ! Loop over the 27 neighbouring father cells
            do ind_father = 1, 27
-              indice = nbors_father_cells(1, ind_father) ! ID of the neighbouring father cell
+              indice     = nbors_father_cells(1, ind_father) ! ID of the neighbouring father cell
               ! ================================================================ !
               ! ---------------------------------------------------------------- !
-              ! This block determines the coordinate of the father neighbour
-              ! ind_father wrt box
+              ! This block determines the coordinate of the father neighbour ind_father wrt box
 
               ind_coarse   = (indice-ncoarse-1)/ngridmax+1
               igrid_coarse = indice-ncoarse-(ind_coarse-1)*ngridmax
-              ! Position of the target father cell wrt to its grid
-              ! (this grid is cell at a lower ilevel)
+              ! Position of the target father cell wrt to its grid (this grid is cell at a lower ilevel)
               iz = (ind_coarse - 1)/4
               iy = (ind_coarse - 1 - 4*iz)/2
               ix = (ind_coarse - 1 - 4*iz - 2*iy)
-              ! Position of neighbouring father cells wrt box
-              ! (overwrite values above)
+              ! Position of neighbouring father cells wrt box (overwrite values above)
               xc1 = xg(igrid_coarse, 1) + (dble(ix) - 0.5D0)/2.0D0**(ilevel-1)
               xc2 = xg(igrid_coarse, 2) + (dble(iy) - 0.5D0)/2.0D0**(ilevel-1)
               xc3 = xg(igrid_coarse, 3) + (dble(iz) - 0.5D0)/2.0D0**(ilevel-1)
@@ -1012,8 +981,7 @@ subroutine ray_interpolate(ilevel, igrid, ind, ray_fields)
               ! the weighted average. The weighted density of this cell is added
               ! to int_rho
 
-              ! Difference in x,y,z-dir between vertex itarget and center of
-              ! neighbouring father cell indice
+              ! Difference in x,y,z-dir between vertex itarget and center of neighbouring father cell indice
               dx = dabs(xc1 - xtarget)*2.0D0**ilevel
               dy = dabs(xc2 - ytarget)*2.0D0**ilevel
               dz = dabs(xc3 - ztarget)*2.0D0**ilevel
