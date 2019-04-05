@@ -1,0 +1,53 @@
+
+&RUN_PARAMS
+cosmo=.true.
+pic=.true.
+poisson=.true.
+ray=.true.
+nrestart=0
+nremap=10
+nsubcycle=1,2
+ncontrol=1
+/
+
+&OUTPUT_PARAMS
+noutput=1
+aout=1.0
+/
+
+&INIT_PARAMS
+filetype='grafic'
+initfile(1)='/gpfs/data/ray_ramses/ics/b32np32_1/'
+/
+
+&AMR_PARAMS
+levelmin=5
+levelmax=6
+ngridtot=500000
+nparttot=500000
+nexpand=1
+/
+
+&RAY_PARAMS
+ray_Nx         = 128
+ray_Ny         = 128
+ray_opening_x  = 45.0D0
+ray_opening_y  = 45.0D0
+ray_no_bending = .true.
+ray_x_obs = 16.192D0
+ray_y_obs = 16.808D0
+ray_z_obs = 0.0D0
+ray_Lbox  = 32.0D0
+ray_z_s   = 0.05D0
+ray_do_kappa     = .true.
+ray_kappa_method = 2
+ray_do_shear     = .true.
+ray_step_test = .false.
+ray_do_ngp = .true.
+/
+
+&REFINE_PARAMS
+m_refine=7*8.
+/
+
+

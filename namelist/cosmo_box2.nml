@@ -1,0 +1,60 @@
+
+&RUN_PARAMS
+cosmo=.true.
+pic=.true.
+poisson=.true.
+ray=.true.
+nrestart=0
+nremap=10
+nsubcycle=1,2,2,2,2,2,2,2,2,2,2,2
+ncontrol=1
+ordering='hilbert'
+/
+
+&OUTPUT_PARAMS
+noutput=10
+aout=0.53835177681D0,0.55436060048D0,0.57080349267D0,0.58770442416D0,0.60508958396D0,0.6229875167D0,0.64142941261D0,0.66044919791D0,0.68008422979D0,0.70037526106D0
+/
+
+&INIT_PARAMS
+filetype='gadget'
+initfile(1)='/madfs/data/hvrn44/ISW/ICs/2LPTic/tile_1/box2/output/ics_planck2015_b1000n1024'
+/
+
+&AMR_PARAMS
+levelmin=10
+levelmax=20 
+ngridtot=2000000000
+nparttot=1500000000
+nexpand=1
+/
+
+&RAY_PARAMS
+ray_Nx         = 2048
+ray_Ny         = 2048
+ray_opening_x  = 20.0D0
+ray_opening_y  = 20.0D0
+ray_no_bending = .true.
+ray_x_obs = 500.0D0
+ray_y_obs = 500.0D0
+ray_z_obs = -1000.0D0
+ray_Lbox  = 1000.0D0
+ray_z_s   = 6.0D0
+ray_do_kappa     = .true.
+ray_do_shear     = .true.
+ray_do_iswrs     = .true.
+ray_do_deflt     = .true.
+ray_kappa_method = 3
+ray_step_test    = .false.
+ray_do_ngp       = .true.
+ray_multi_out    = .true.
+ray_afresh       = .true.
+ray_nout         = 10
+ray_zout         = 0.830485D0,0.7776945D0,0.7265338D0,0.6769105D0,0.6287373D0,0.581932D0,0.5364174D0,0.49212D0,0.448971D0,0.406904D0
+/
+
+&REFINE_PARAMS
+m_refine=8,8,8,8,8,8,8,8,8,8
+/
+
+
