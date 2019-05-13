@@ -1,0 +1,1 @@
+This test was designed to test the agreement on ramses and ray-ramses outputs if the new and old ray-ramses code (post-Feb2019 and pre-Feb2019) is run with ordering='Piano-Hilbert' and ordering='angular' CPU domain decompostion.

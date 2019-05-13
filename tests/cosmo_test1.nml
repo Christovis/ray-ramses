@@ -1,0 +1,59 @@
+
+&RUN_PARAMS
+cosmo=.true.
+pic=.true.
+poisson=.true.
+ray=.true.
+nrestart=0
+nremap=10
+nsubcycle=1,2,2,2,2,2,2,2,2,2,2,2
+ncontrol=1
+ordering = 'hilbert'
+/
+
+&OUTPUT_PARAMS
+noutput=2
+aout = 0.5d0, 1.0d0
+/
+
+&INIT_PARAMS
+filetype='gadget'
+initfile(1)='/madfs/data/hvrn44/ISW/ICs/2LPTic/test_ic/output/ics_planck2015_b256n256'
+/
+
+&AMR_PARAMS
+levelmin=8
+levelmax=20 
+ngridtot=100000000
+nparttot=100000000
+nexpand=1
+/
+
+&RAY_PARAMS
+ray_Nx         = 256
+ray_Ny         = 256
+ray_opening_x  = 0.5D0
+ray_opening_y  = 0.5D0
+ray_no_bending = .true.
+ray_x_obs = 128.0D0
+ray_y_obs = 128.0D0
+ray_z_obs = 0.0D0
+ray_Lbox  = 256.0D0
+ray_z_s   = 0.0572D0
+ray_do_kappa     = .true.
+ray_kappa_method = 2
+ray_do_shear     = .true.
+ray_step_test    = .false.
+ray_do_ngp       = .true.
+ray_do_isw       = .true.
+ray_multi_out    = .true.
+ray_afresh       = .true.
+ray_nout         = 1
+ray_zout         = 0.0d0
+/
+
+&REFINE_PARAMS
+m_refine=8,8,8,8,8,8,8,8,8,8
+/
+
+
