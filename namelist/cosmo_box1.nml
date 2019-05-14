@@ -8,7 +8,7 @@ nrestart=0
 nremap=10
 nsubcycle=1,2,2,2,2,2,2,2,2,2,2,2
 ncontrol=1
-ordering='hilbert'
+ordering='angular'
 /
 
 &OUTPUT_PARAMS
@@ -30,8 +30,8 @@ nexpand=1
 /
 
 &RAY_PARAMS
-ray_Nx         = 2048
-ray_Ny         = 2048
+ray_Nx         = 8192
+ray_Ny         = 8192
 ray_opening_x  = 20.0D0
 ray_opening_y  = 20.0D0
 ray_no_bending = .true.
