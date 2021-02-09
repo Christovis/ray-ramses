@@ -1,7 +1,7 @@
 # Ray-RAMSES
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![arXiv](https://img.shields.io/badge/arXiv-2007.03042%20-green.svg)](https://arxiv.org/abs/1601.02012)
+[![arXiv](https://img.shields.io/badge/arXiv-1601.02012%20-green.svg)](https://arxiv.org/abs/1601.02012)
 
 A open-source ray tracing code to compute integrated cosmological observables on the fly in AMR N-body simulations. Unlike conventional ray tracing techniques, our code takes full advantage of the time and spatial resolution attained by the N-body simulation by computing the integrals along the line of sight on a cell-by-cell basis through the AMR simulation grid. Moroever, since it runs on the fly in the N-body run, our code can produce maps of the desired observables without storing large (or any) amounts of data for post-processing. The ray tracing methodology presented here can be used in several cosmological analysis such as Sunyaev-Zel’dovich and integrated Sachs-Wolfe effect studies as well as modified gravity. Our code can also be used in cross-checks of the more conventional methods, which can be important in tests of theory systematics in preparation for upcoming large scale structure surveys.
 
